@@ -1,0 +1,91 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+\usepackage{geometry}
+
+\title{Progetto di Reti Logiche AA 2022-2023}
+\author{Luca Simei\\
+\texttt{10714016}
+\and
+Alessio Spineto\\
+\texttt{10739526}
+}
+    
+\date{Marzo 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduzione}
+Il modulo da implementare presenta:
+
+a. due ingressi primari da 1 bit: W e START
+
+b. quattro uscite primarie da 8 bit: Z0, Z1, Z2, Z3
+
+c. una uscita primaria da 1 bit: DONE
+
+d. un segnale di clock unico: CLK
+
+e. un segnale di reset unico: RESET
+
+\noindent Ogni evento del circuito avviene in corrispondenza del fronte di salita del segnale di clock. All'istante iniziale, relativo al reset del sistema, le uscite sono tutte inizializzate a zero e il segnale di DONE è 0. Il funzionamento del circuito è il seguente: appena il segnale di START diventa 1, comincia ad essere letta la sequenza di bit dell'ingresso primario W. Nello specifico, viene letto un bit ad ogni fronte di salita del ciclio di clock. Verrà letto un massimo di 18 bit fintanto che il segnale di START è 1, o eventualmente verrà letto un numero inferiore di bit se il segnale di START diventa 0 prima di 18 cicli di clock da quando è diventato 1. In quest'ultimo caso, la sequenza in ingresso viene estesa con degli 0 sui bit più significativi, fino ad ottenere una stringa di ingresso della lunghezza di 18 bit. Di tale sequenza, i primi due bit rappresenteranno l'uscita del nostro messaggio. Rispettivamente:
+
+00: Z0
+
+01: Z1
+
+10: Z2
+
+11: Z3
+
+\noindent Gli altri 16 bit della sequenza rappresentano invece l'indirizzo di memoria dal quale prendere un valore in binario. A questo punto, tale valore viene scritto sul canale di uscita precedentemente individuato. Contemporaneamente, il segnale di DONE è 1 per un solo ciclo di clock. Fino a quando il segnale di DONE non è tornato a 0, il segnale di START è garantito essere 0. Il tempo trascorso per produrre il risultato sull'uscita, quindi da quando viene preso il messaggio dalla memoria a quando viene scritto sull'uscita, deve essere inferiore a 20 cicli di clock. \\
+Vediamo un esempio per rendere l'idea:\\
+Si consideri una situazione iniziale, in cui il segnale di RESET ha inizializzato tutte le uscite. START dopo un istante di tempo t passa da 0 a 1, e rimane tale per te cicli di clock. Vengono quindi letti tre bit in ingresso dal segnale W: si legga per esempio rispettivamente 1 (il bit più significativo della sequenza realizzata), 0, 1. I primi due bit letti individuano l'uscita: nel nostro caso 01, quindi Z1. Di fronte al bit 1 meno significativo della sequenza letta, vengono aggiunti nelle posizioni più significative 15 bit 0. L'indirizzo così ottenuto è 0000000000000001. Ciò significa che andrà indirizzato verso l'uscita Z1 il messaggio contenuto all'indirizzo di memoria 0000000000000001. Tale messaggio sarà una sequenza binaria di 8 bit, per esempio 00000020. Ora il segnale di START è 0, e attendiamo quando il segnale di DONE sarà 1. Ciò significa che abbiamo il messaggio contenuto nel'indirizzo di memoria individuato, e lo stiamo scrivendo sull'uscita Z1. Il segnale di DONE rimarrà 1 per un solo ciclo di clock. Saranno visibili i valori assunti dalle uscite solo quando DONE è 1. Quello che si vedrà sarà quindi:
+
+Z0: 00000000
+
+Z1: 00000020
+
+Z2: 00000000
+
+Z3: 00000000
+
+\noindent E' importante osservare il fatto che fintanto che DONE è 0, sulle uscite si vedranno solo stringhe inizializzate a zero (00000000), mentre quando DONE è 1 si vedrà su ogni canale l'ultimo valore ad esso trasmesso.
+
+\begin{figure}[H]
+\centerline{\includegraphics[width=15cm,height=15cm,keepaspectratio]{diagramma_di_flusso.jpg}}
+\caption{Diagramma di flusso}
+\label{fig}
+\end{figure}
+
+\section{Architettura}
+Per la realizzazione del progetto, abbiamo deciso di optare su una macchina a stati finiti che regoli il funzionamento del circuito.
+In particolare, il passaggio da uno stato all'altro di tale macchina è regolato dai segnali di RESET e di START.
+Tale macchina a stati finiti presenta ben 4 stati, e abbiamo quindi deciso di utilizzare nel nostro codice soltanto due bit per rappresentarli.
+Analizziamo uno per uno gli stati:
+
+\begin{description}
+\item[state 00]
+Siamo nello stato iniziale, che può essere inizializzato dal segnale di RESET.
+In questo stato inizializziamo il segnale di DONE a 0, così come sono inizializzati a 00000000 i messaggi sulle uscite.
+Nel momento in cui il segnale di START passa da 0 a 1, iniziamo a leggere la sequenza di bit dall'ingresso W. In particolare, in questo stato leggiamo il primo dei due bit che rappresentano l'uscita verso cui indirizzare il nostro messaggio. Quindi, se da input leggiamo 1, l'uscita sarà temporaneamente 01, se invece il segnale W è 0 l'uscita sarà inizialmente 00. Nel momento in cui START diventa 1, in questo stato la lettura da input sfrutta un solo ciclo di clock.
+
+\item[state 01]
+Al ciclo di clock successivo, si passa allo stato seguente. In questo stato viene eseguita la lettura da input W del bit meno significativo dei due bit che rappresentano l'uscita verso cui indirizzare il nostro messaggio. La msoluzione a livello implementativo che abbiamo trovato è interessante: a partire dal risultato ottenuto nello stato precedente, eseguiamo uno shift logico verso sinistra per sommare al risultato il bit letto in input. A questo punto, sappiamo su quale uscita scrivere il nostro valore. Anche in questo stato, la lettura da input W e il salvataggio del nostro bit sfrutta un solo ciclo di clock.
+
+\item[state 10]
+Fintanto che START è ancora 1, leggiamo da input W una sequenza di bit in ordine decrescente di significatività. Tale sequenza rappresenterà l'indirizzo di memoria da cui estrarre il valore da indirizzare verso l'uscita. Si ricordi che per questo stato verrà letto un bit dall'input per ogni cicl0 di clock, per un minimo di 0 e un massimo di 18 cicli di clock. Nel momento in cui START passa da 0 a 1, termina la lettura dei bit in ingresso. Per realizzare l'indirizzo di memoria di 16 bit, abbiamo sfruttato a livello implementativo lo stesso trucco usato nello stato precedente: inizializzata nello stato iniziale una variabile $in_address$ a 0000000000000000, inseriamo ad ogni ciclio di clock il bit letto in ingresso nella posizione meno significativa. Dal secondo bit letto in poi, eseguiamo uno shift logico a sinistra sulla stringa binaria e scriviamo nella posizione meno significativa il bit letto. In questo modo, una volta finita la fase di lettura avremo l'indirizzo di memoria già prolungato fino a 16 bit con bit 0 nelle posizioni più significative. Nel momento in cui START passa da 0 a 1, passiamo all'ultimo stato.
+
+\item[state 11]
+A questo punto sappiamo da quale indirizzo di memoria leggere il nostro valore in binario, e verso quale uscita delle quattro uscite date indirizzarlo. Questo stato può durare un massimo di 20 cicli di clock. Tuttavia, nel momento in cui il segnale di DONE passa da 0 a 1, questo rimarrà tale per un solo ciclo di clock. E' in questo momento che sull'uscita selezionata verrà visualizzato il nuovo valore aggiornato, mentre sulle altre uscite sarà possibile visualizzare il valore vecchio. PEr fare ciò, a livello implementativo abbiamo salvato in delle variabili per ciascuna porta di uscita l'ultimo valore mostrato. Terminata questa fase, si ritorna allo stato iniziale.
+\end{description}
+
+\begin{figure}[H]
+\centerline{\includegraphics[width=15cm,height=15cm,keepaspectratio]{diagramma_fsm.jpg}}
+\caption{Diagramma FSM}
+\label{fig}
+\end{figure}
+
+\end{document}
