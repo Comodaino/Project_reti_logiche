@@ -58,86 +58,87 @@ if i_rst = '1' then
     o_done <= '0';  
 else                  
 
--- RESET 0
-if i_clk'event and i_clk='1' then
-    case state is
+    -- RESET 0
+    if i_clk'event and i_clk='1' then
+        case state is
          
-        -- state 00
-        -- First port bit input
-        when "00" =>
-            o_done <= '0';
-            o_z0 <= "00000000";
-            o_z1 <= "00000000";
-            o_z2 <= "00000000";
-            o_z3 <= "00000000";
-            in_address := "0000000000000000";
-            in_portsel := "00";
-            if i_start = '1' then
-                state := "01";
-                if i_w = '1' then 
-                    in_portsel := "01";
-                else
-                    n_portsel := "00";
+            -- state 00
+            -- First port bit input
+            when "00" =>
+                o_done <= '0';
+                o_z0 <= "00000000";
+                o_z1 <= "00000000";
+                o_z2 <= "00000000";
+                o_z3 <= "00000000";
+                in_address := "0000000000000000";
+                in_portsel := "00";
+                if i_start = '1' then
+                    state := "01";
+                    if i_w = '1' then 
+                        in_portsel := "01";
+                    else
+                        n_portsel := "00";
+                    end if;
                 end if;
-            end if;
 
-        -- state 01
-        -- Second port bit input
-        when "01" =>
-            state := "10";
-            if i_w = '1' then 
-                in_portsel := std_logic_vector((unsigned(in_portsel) sll 1) + "01");
-            else
-                in_portsel := std_logic_vector(unsigned(in_portsel) sll 1);
-            end if;
-        
-        -- state 01
-        -- Memory address input
-        when "10" =>
-            if i_start = '0' then
-                state := "11";
-            else
+            -- state 01
+            -- Second port bit input
+            when "01" =>
+                state := "10";
                 if i_w = '1' then 
-                    in_address := std_logic_vector((unsigned(in_address) sll 1) + "0000000000000001");
+                    in_portsel := std_logic_vector((unsigned(in_portsel) sll 1) + "01");
                 else
-                    in_address := std_logic_vector(unsigned(in_address) sll 1);
+                    in_portsel := std_logic_vector(unsigned(in_portsel) sll 1);
                 end if;
-            end if;
         
-        -- state 11
-        -- Show output
-        when "11" =>
-            o_done <= '1';
-            if in_portsel = "00" then
-                o_z0 <= i_mem_data;
-                old_z0:= i_mem_data;
-            else 
-                o_z0 <= old_z0; 
-            end if;
-            if in_portsel = "01" then
-                o_z1 <= i_mem_data;
-                old_z1:= i_mem_data;
-            else 
-                o_z1 <= old_z1; 
-            end if;
-            if in_portsel = "10" then
-                o_z2 <= i_mem_data;
-                old_z2 := i_mem_data;
-            else 
-                o_z2 <= old_z2; 
-            end if;
-            if in_portsel = "11" then
-                o_z3 <= i_mem_data;
-                old_z3 := i_mem_data;
-            else 
-                o_z3 <= old_z3; 
-            end if;
-        state := "00";
+            -- state 01
+            -- Memory address input
+            when "10" =>
+                if i_start = '0' then
+                    state := "11";
+                else
+                    if i_w = '1' then 
+                        in_address := std_logic_vector((unsigned(in_address) sll 1) + "0000000000000001");
+                    else
+                        in_address := std_logic_vector(unsigned(in_address) sll 1);
+                    end if;
+                end if;
+        
+            -- state 11
+            -- Show output
+            when "11" =>
+                o_done <= '1';
+                if in_portsel = "00" then
+                    o_z0 <= i_mem_data;
+                    old_z0:= i_mem_data;
+                else 
+                    o_z0 <= old_z0; 
+                end if;
+                if in_portsel = "01" then
+                    o_z1 <= i_mem_data;
+                    old_z1:= i_mem_data;
+                else 
+                    o_z1 <= old_z1; 
+                end if;
+                if in_portsel = "10" then
+                    o_z2 <= i_mem_data;
+                    old_z2 := i_mem_data;
+                else 
+                    o_z2 <= old_z2; 
+                end if;
+                if in_portsel = "11" then
+                    o_z3 <= i_mem_data;
+                    old_z3 := i_mem_data;
+                else 
+                    o_z3 <= old_z3; 
+                end if;
+            state := "00";
 
-        -- (only for debugging)    
-        when others => state := "11";
+            -- (only for debugging)    
+            when others => state := "11";
 
-    end case;
+        end case;
+    end if;
 end if;
 end process;
 end behavioral;
