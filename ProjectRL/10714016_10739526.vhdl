@@ -97,10 +97,11 @@ if i_clk'event and i_clk='1' then
             if i_start = '0' then
                 state := "11";
             else
-            if i_w = '1' then 
-                in_address := std_logic_vector((unsigned(in_address) sll 1) + "0000000000000001");
-            else
-                in_address := std_logic_vector(unsigned(in_address) sll 1);
+                if i_w = '1' then 
+                    in_address := std_logic_vector((unsigned(in_address) sll 1) + "0000000000000001");
+                else
+                    in_address := std_logic_vector(unsigned(in_address) sll 1);
+                end if;
             end if;
         
         -- state 11
