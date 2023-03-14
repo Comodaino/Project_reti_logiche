@@ -91,7 +91,7 @@ else
                     in_portsel := std_logic_vector(unsigned(in_portsel) sll 1);
                 end if;
         
-            -- state 01
+            -- state 10
             -- Memory address input
             when "10" =>
                 if i_start = '0' then
